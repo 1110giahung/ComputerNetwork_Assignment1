@@ -98,7 +98,7 @@ func handleConnection(conn net.Conn) {
 
 		// Process the message based on its type
 		switch {
-		case strings.HasPrefix(message, "test:"):
+		case strings.HasPrefix(message, "test"):
 			fmt.Printf("Received test message: %s\n", message)
 			conn.Write([]byte("OK\n"))
 		case strings.HasPrefix(message, "HANDSHAKE:"):

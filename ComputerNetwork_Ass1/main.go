@@ -20,6 +20,9 @@ func main() {
 		}
 	}()
 
+	torrentDir := "./torrents"
+
+
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Torrent Simulation App")
 	fmt.Println("Commands:")
@@ -58,10 +61,10 @@ func main() {
 			one_file := strings.Split(args[1], ",")
 			if(len(one_file) > 1){
 				for i := 0; i < len(one_file); i++ {
-					client.StartDownload(one_file[i])
+					client.StartDownload(one_file[i],"./torrents/torrent_index.json")
 				}
 			} else {
-				client.StartDownload(torrentFile)
+				client.StartDownload(torrentFile,"./torrents/torrent_index.json")
 			}
 
 			
@@ -93,11 +96,18 @@ func main() {
 				continue
 			}
 			sourceFile := args[1]
-			
+			fmt.Printf("Source file: %s\n", sourceFile)
+
 			one_file := strings.Split(args[1], ",")
+			// print all files
+			for i := 0; i < len(one_file); i++ {
+				fmt.Println(one_file[i])
+			}
+			
+
 			if len(one_file) > 1 {
 				for i:= 0; i < len(one_file); i++ {
-					torrentFileName, err := torrent.Create(one_file[i])
+					torrentFileName, err := torrent.Create(one_file[i], "./torrents")
 					if err != nil {
 						fmt.Printf("Failed to create torrent file: %v\n", err)
 					} else {
@@ -105,7 +115,7 @@ func main() {
 					}
 				}
 			} else {
-				torrentFileName, err := torrent.Create(sourceFile)
+				torrentFileName, err := torrent.Create(sourceFile, "./torrents")
 				if err != nil {
 					fmt.Printf("Failed to create torrent file: %v\n", err)
 				} else {
@@ -121,7 +131,7 @@ func main() {
 				continue
 			}
 			torrentFile := args[1]
-			torrent.Open(torrentFile)
+			torrent.Open(torrentFile, torrentDir)
 		case strings.HasPrefix(commandLine, "check-file"):
 			args := strings.Split(commandLine, " ")
 			if len(args) < 2 {

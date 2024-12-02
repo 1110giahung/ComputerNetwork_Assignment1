@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"strings"
+	"path/filepath"
+
 
 	"github.com/jackpal/bencode-go"
 )
@@ -35,21 +37,39 @@ type bencodeTorrent struct {
 }
 
 // Open parses a torrent file
-func Open(path string) (TorrentFile, error) {
-	file, err := os.Open(path)
+func Open(filename string, torrentDir string) (TorrentFile, error) {
+	// Step 1: Construct the full path to the .torrent file
+	torrentPath := filepath.Join(torrentDir, filename)
+
+	// Step 2: Check if the file exists
+	if _, err := os.Stat(torrentPath); os.IsNotExist(err) {
+		return TorrentFile{}, fmt.Errorf("file '%s' not found in directory '%s'", filename, torrentDir)
+	}
+
+	// Step 3: Open the file
+	file, err := os.Open(torrentPath)
 	if err != nil {
-		return TorrentFile{}, err
+		return TorrentFile{}, fmt.Errorf("failed to open file '%s': %w", torrentPath, err)
 	}
 	defer file.Close()
 
+	// Step 4: Decode the bencoded data into the bencodeTorrent struct
 	bto := bencodeTorrent{}
-	err = bencode.Unmarshal(file, &bto)
-	if err != nil {
-		return TorrentFile{}, err
+	if err := bencode.Unmarshal(file, &bto); err != nil {
+		return TorrentFile{}, fmt.Errorf("failed to unmarshal bencoded data: %w", err)
 	}
-	fmt.Println(bto.toTorrentFile())
-	return bto.toTorrentFile()
+
+	// Step 5: Convert the bencodeTorrent to TorrentFile
+	torrentFile, err := bto.toTorrentFile()
+	if err != nil {
+		return TorrentFile{}, fmt.Errorf("failed to convert bencoded data to TorrentFile: %w", err)
+	}
+
+	// Step 6: Print and return the TorrentFile
+	fmt.Printf("Successfully loaded torrent file: %+v\n", torrentFile)
+	return torrentFile, nil
 }
+
 
 func (i *bencodeInfo) hash() ([20]byte, error) {
 	var buf bytes.Buffer
@@ -195,35 +215,74 @@ func (t *TorrentFile) createTorrentFile(path string) error {
 	return bencode.Marshal(file, bto)
 }
 
-func Create(path string) (torrentPath string, err error) {
+func Create(path string, destDir string) (torrentPath string, err error) {
 	trackerURL := "http://localhost:8080/announce"
-	torrentFile, err := CreateTorrent(path, trackerURL)
-	if err != nil {
-		return "", err
-	}
-	torrentFileName := fmt.Sprintf("%s.torrent", path)
-	err = torrentFile.createTorrentFile(torrentFileName)
-	if err != nil {
-		return "", err
+
+	// Step 1: Ensure destination directory exists
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	torrentInfo := map[string]string{
-		"FilePath": path,
-		"FileName": torrentFile.Name,
-		"InfoHash": fmt.Sprintf("%x", torrentFile.InfoHash),
-		// Print the list of piece hashes
-		"PieceHashes": fmt.Sprintf("%x", torrentFile.PieceHashes),
+	// Step 2: Load or initialize the torrent index
+	indexFilePath := filepath.Join(destDir, "torrent_index.json")
+	torrentIndex := make(map[string]string) // Map of file path to torrent file path
+
+	if _, err := os.Stat(indexFilePath); err == nil {
+		// File exists, load the index
+		indexData, err := os.ReadFile(indexFilePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read torrent index: %w", err)
+		}
+		if err := json.Unmarshal(indexData, &torrentIndex); err != nil {
+			return "", fmt.Errorf("failed to parse torrent index: %w", err)
+		}
 	}
-	jsonData, err := json.Marshal(torrentInfo)
+
+	// Step 3: Create the torrent file
+	torrentFile, err := CreateTorrent(path, trackerURL)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to create torrent: %w", err)
 	}
-	err = os.WriteFile("torrent_info.json", jsonData, 0644)
+
+	// Step 4: Construct the new torrent file path
+	torrentFileName := fmt.Sprintf("%s.torrent", filepath.Base(path))
+	torrentFilePath := filepath.Join(destDir, torrentFileName)
+
+	// Step 5: Check if the file already exists in the index
+	if oldTorrentPath, exists := torrentIndex[path]; exists && oldTorrentPath != torrentFilePath {
+		// Remove the old torrent file
+		if err := os.Remove(oldTorrentPath); err != nil && !os.IsNotExist(err) {
+			return "", fmt.Errorf("failed to remove old torrent file: %w", err)
+		}
+	}
+
+	// Step 6: Save the new torrent file
+	if err := torrentFile.createTorrentFile(torrentFilePath); err != nil {
+		return "", fmt.Errorf("failed to save torrent file: %w", err)
+	}
+
+	// Step 7: Update the torrent index
+	torrentIndex[path] = torrentFilePath
+
+	// Step 8: Save the updated index back to the JSON file
+	indexData, err := json.MarshalIndent(torrentIndex, "", "  ")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to serialize torrent index: %w", err)
 	}
-	return torrentFileName, nil
+
+	if err := os.WriteFile(indexFilePath, indexData, 0644); err != nil {
+		return "", fmt.Errorf("failed to save torrent index: %w", err)
+	}
+
+	//print all the torrent files
+	for _, torrentPath := range torrentIndex {
+		fmt.Println(torrentPath)
+	}
+
+	// Step 9: Return the path to the newly created torrent file
+	return torrentFilePath, nil
 }
+
 
 func (t *TorrentFile) ReadPiece(index int) ([]byte, error) {
 	// Validate piece index

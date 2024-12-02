@@ -11,8 +11,13 @@ import (
 	"sync"
 	"time"
 
+	"os"
+	"encoding/json"
+
+
 	"tcp-app/torrent"
 )
+
 
 type PieceWork struct {
 	Index int
@@ -25,21 +30,45 @@ type PieceResult struct {
 	Data  []byte
 	Error error
 }
+func StartDownload(torrentFilePath string, indexFilePath string) {
+	torrentDir := "./torrents"
 
-func StartDownload(torrentFile string) {
-	fmt.Println("Starting download for:", torrentFile)
+	fmt.Println("Starting download for:", torrentFilePath)
 
-	// Parse torrent file using the torrent package
-	tf, err := torrent.Open(torrentFile)
+	// Step 1: Load torrent index
+	indexData, err := os.ReadFile(indexFilePath)
 	if err != nil {
-		fmt.Printf("Error opening torrent file: %v\n", err)
+		fmt.Printf("Error reading torrent index file: %v\n", err)
 		return
 	}
 
-	// Mock the list of peers
+	// Step 2: Parse the index JSON
+	torrentIndex := make(map[string]string)
+	if err := json.Unmarshal(indexData, &torrentIndex); err != nil {
+		fmt.Printf("Error parsing torrent index: %v\n", err)
+		return
+	}
+
+	// Step 3: Check if the requested torrent file exists in the index
+	realTorrentPath, exists := torrentIndex[torrentFilePath]
+	if !exists {
+		fmt.Printf("Torrent file '%s' not found in index.\n", torrentFilePath)
+		return
+	}
+
+	// Step 4: Open the .torrent file
+	tf, err := torrent.Open(realTorrentPath, torrentDir)
+	if err != nil {
+		fmt.Printf("Error opening torrent file '%s': %v\n", realTorrentPath, err)
+		return
+	}
+
+	fmt.Println("Successfully loaded torrent file:", tf.Name)
+
+	// Step 5: Mock the list of peers (replace with actual peer discovery in a real implementation)
 	peers := []string{"192.168.1.17:8080"}
 
-	// First, test connection and handshake with peers
+	// Step 6: Test connection and handshake with peers
 	var activePeers []string
 	for _, peer := range peers {
 		err := TestConnection(peer)
@@ -61,7 +90,7 @@ func StartDownload(torrentFile string) {
 		return
 	}
 
-	// Create channels for the worker pool
+	// Step 7: Create channels for the worker pool
 	const numWorkers = 3
 	workQueue := make(chan PieceWork, len(tf.PieceHashes))
 	results := make(chan PieceResult, len(tf.PieceHashes))
@@ -112,6 +141,7 @@ func StartDownload(torrentFile string) {
 
 	fmt.Println("Download complete!")
 }
+
 
 func downloadWorker(peer string, work <-chan PieceWork, results chan<- PieceResult, infoHash []byte) {
 	for piece := range work {
