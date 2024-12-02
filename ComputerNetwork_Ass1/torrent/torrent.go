@@ -283,6 +283,37 @@ func Create(path string, destDir string) (torrentPath string, err error) {
 	return torrentFilePath, nil
 }
 
+func Review(destDir string) error {
+	// Step 1: Define the path to the torrent index file
+	indexFilePath := filepath.Join(destDir, "torrent_index.json")
+
+	// Step 2: Check if the index file exists
+	if _, err := os.Stat(indexFilePath); os.IsNotExist(err) {
+		return fmt.Errorf("torrent index file not found in directory '%s'", destDir)
+	}
+
+	// Step 3: Read the index file
+	indexData, err := os.ReadFile(indexFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to read torrent index file: %w", err)
+	}
+
+	// Step 4: Parse the index file
+	torrentIndex := make(map[string]string) // Map of original file path to torrent file path
+	if err := json.Unmarshal(indexData, &torrentIndex); err != nil {
+		return fmt.Errorf("failed to parse torrent index: %w", err)
+	}
+
+	// Step 5: Print all torrent files and their original file paths
+	fmt.Println("List of all torrent files:")
+	for originalPath, torrentPath := range torrentIndex {
+		fmt.Printf("Original File: %s\nTorrent File: %s\n", originalPath, torrentPath)
+	}
+
+	return nil
+}
+
+
 
 func (t *TorrentFile) ReadPiece(index int) ([]byte, error) {
 	// Validate piece index

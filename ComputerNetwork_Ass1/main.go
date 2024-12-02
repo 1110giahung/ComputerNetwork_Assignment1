@@ -22,17 +22,17 @@ func main() {
 
 	torrentDir := "./torrents"
 
-
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Torrent Simulation App")
 	fmt.Println("Commands:")
 	fmt.Println("  download [torrent-file]  - Start downloading a torrent file")
-	fmt.Println("  test [ip:port]          - Test connection to a peer")
+	fmt.Println("  test [ip:port]           - Test connection to a peer")
 	fmt.Println("  exit                     - Exit the program")
 	fmt.Println("  clear                    - Clear the terminal")
 	fmt.Println("  create [file]            - Create a torrent file from a source file")
 	fmt.Println("  open [torrent-file]      - Open and display torrent file contents")
-	fmt.Println("  check-file [filename]     - Test split and merge functionality")
+	fmt.Println("  check-file [filename]    - Test split and merge functionality")
+	fmt.Println("  Review                   - See all torrent files")
 	for {
 		fmt.Print("> ") // CLI prompt
 		commandLine, _ := reader.ReadString('\n')
@@ -49,7 +49,6 @@ func main() {
 			torrentFile := args[1]
 			server.StartServer(torrentFile)
 
-
 		case strings.HasPrefix(commandLine, "download"):
 			args := strings.Split(commandLine, " ")
 			if len(args) < 2 {
@@ -59,15 +58,13 @@ func main() {
 			torrentFile := args[1]
 
 			one_file := strings.Split(args[1], ",")
-			if(len(one_file) > 1){
+			if len(one_file) > 1 {
 				for i := 0; i < len(one_file); i++ {
-					client.StartDownload(one_file[i],"./torrents/torrent_index.json")
+					client.StartDownload(one_file[i], "./torrents/torrent_index.json")
 				}
 			} else {
-				client.StartDownload(torrentFile,"./torrents/torrent_index.json")
+				client.StartDownload(torrentFile, "./torrents/torrent_index.json")
 			}
-
-			
 
 		case strings.HasPrefix(commandLine, "test"):
 			args := strings.Split(commandLine, " ")
@@ -96,17 +93,10 @@ func main() {
 				continue
 			}
 			sourceFile := args[1]
-			fmt.Printf("Source file: %s\n", sourceFile)
-
 			one_file := strings.Split(args[1], ",")
 			// print all files
-			for i := 0; i < len(one_file); i++ {
-				fmt.Println(one_file[i])
-			}
-			
-
 			if len(one_file) > 1 {
-				for i:= 0; i < len(one_file); i++ {
+				for i := 0; i < len(one_file); i++ {
 					torrentFileName, err := torrent.Create(one_file[i], "./torrents")
 					if err != nil {
 						fmt.Printf("Failed to create torrent file: %v\n", err)
@@ -122,8 +112,7 @@ func main() {
 					fmt.Printf("Torrent file created successfully: %s\n", torrentFileName)
 				}
 			}
-			
-			
+
 		case strings.HasPrefix(commandLine, "open"):
 			args := strings.Split(commandLine, " ")
 			if len(args) < 2 {
@@ -143,6 +132,10 @@ func main() {
 				fmt.Printf("Test failed: %v\n", err)
 				return
 			}
+
+		case strings.HasPrefix(commandLine, "review"):
+			torrent.Review(torrentDir)
+
 		default:
 			fmt.Println("Unknown command. Try again.")
 		}
