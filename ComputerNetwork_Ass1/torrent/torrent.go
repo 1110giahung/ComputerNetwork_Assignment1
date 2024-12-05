@@ -306,8 +306,8 @@ func Review(destDir string) error {
 
 	// Step 5: Print all torrent files and their original file paths
 	fmt.Println("List of all torrent files:")
-	for originalPath, torrentPath := range torrentIndex {
-		fmt.Printf("Original File: %s\nTorrent File: %s\n", originalPath, torrentPath)
+	for torrentPath := range torrentIndex {
+		fmt.Printf("Torrent File: %s\n", torrentPath)
 	}
 
 	return nil

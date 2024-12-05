@@ -32,7 +32,7 @@ func main() {
 	fmt.Println("  create [file]            - Create a torrent file from a source file")
 	fmt.Println("  open [torrent-file]      - Open and display torrent file contents")
 	fmt.Println("  check-file [filename]    - Test split and merge functionality")
-	fmt.Println("  Review                   - See all torrent files")
+	fmt.Println("  review                   - See all torrent files")
 	for {
 		fmt.Print("> ") // CLI prompt
 		commandLine, _ := reader.ReadString('\n')
@@ -60,10 +60,10 @@ func main() {
 			one_file := strings.Split(args[1], ",")
 			if len(one_file) > 1 {
 				for i := 0; i < len(one_file); i++ {
-					client.StartDownload(one_file[i], "./torrents/torrent_index.json")
+					client.StartDownload(one_file[i])
 				}
 			} else {
-				client.StartDownload(torrentFile, "./torrents/torrent_index.json")
+				client.StartDownload(torrentFile)
 			}
 
 		case strings.HasPrefix(commandLine, "test"):
