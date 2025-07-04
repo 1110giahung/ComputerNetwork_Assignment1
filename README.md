@@ -100,8 +100,8 @@ sta/
 ---
 
 ## Authors
-| Name | Student ID | Main Contributions |
-|------|------------|--------------------|
+| Name | Student ID |
+|------|------------|
 | **Huỳnh Gia Hưng** | 2252274 |
 
 _Advisor: Diệp Thanh Đăng_
