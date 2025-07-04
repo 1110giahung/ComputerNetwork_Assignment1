@@ -102,9 +102,7 @@ sta/
 ## Authors
 | Name | Student ID | Main Contributions |
 |------|------------|--------------------|
-| **Huỳnh Gia Hưng** | 2252274 | Client & server logic, report writing |
-| **Mạc Hồ Do Khang** | 2252297 | File & piece handling, report writing |
-| **Nguyễn Đức Hạnh Nhi** | 2252578 | Client & server logic, report writing |
+| **Huỳnh Gia Hưng** | 2252274 |
 
 _Advisor: Diệp Thanh Đăng_
 
